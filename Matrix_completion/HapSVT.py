@@ -1,4 +1,4 @@
-from matrix_tools import matrix_tools as mt
+from matrix_scripts import matrix_tools as mt
 import numpy as np
 
 
@@ -9,12 +9,14 @@ def complete_matrix(R: np.ndarray, delta: float = 0.1, shrinkage_threshold: floa
     k = 0
     i = 1
     tmp_X = np.zeros(R.shape)
+    print("norm of R:\n", mt.frob_norm(R))
     while True:
         tmp_X = mt.singular_value_shrinkage(tmp_Y, threshold=shrinkage_threshold)
         tmp_Y = tmp_Y + delta*mt.selective_matrix(R - tmp_X, selection_matrix)
 
         if mt.frob_norm(mt.selective_matrix(tmp_X - R, selection_matrix)) <= epsilon*mt.frob_norm(R):
             break
+        print(mt.frob_norm(mt.selective_matrix(tmp_X - R, selection_matrix)) - epsilon*mt.frob_norm(R))
     return tmp_X
 
 
