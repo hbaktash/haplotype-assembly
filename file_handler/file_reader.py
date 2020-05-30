@@ -155,6 +155,8 @@ def check_reads_sanity(reads_list: list, file_name: str = ""):
                 flag = False
         if flag:
             bad_cols.append(j)
+    if len(bad_cols) != 0:
+        print("*****************BAD COLS!!!!!\n", bad_cols)
     return bad_cols
 
 
@@ -191,8 +193,8 @@ def variation_stats(variations, all_read_arrays, indexes: list):
 def read_merged():
     merged_vcf_path = os.path.join(DATA_PATH, "merges")
     merged_sam_path = os.path.join(DATA_PATH, "merges")
-    with open(os.path.join(merged_vcf_path, "merged-vcf.vcf"), 'r') as vcf_file, \
-            open(os.path.join(merged_sam_path, "merged.sam"), 'r') as sam_file:
+    with open(os.path.join(merged_vcf_path, "merged-vars.vcf"), 'r') as vcf_file, \
+            open(os.path.join(merged_sam_path, "merged-ndup.sam"), 'r') as sam_file:
         index_pairs = vcf_to_indices(vcf_file)
         indexes = [pair[0] for pair in index_pairs]
         variations = [pair[1] for pair in index_pairs]
@@ -225,48 +227,14 @@ def test():
     # print(count, " out of ", rows*len(all_read_arrays))
 
 
-def build_variations(read_arrays: list):
-    variations = []
-    for j in range(len(read_arrays[0])):
-        col_vars = []
-        for read in read_arrays:
-            if not col_vars.__contains__(read[j]):
-                col_vars.append(read[j])
-        variations.append(col_vars.copy())
-    return variations
-
-
-def read_array_to_matrix(read_arrays: list, index_pairs: list, difference_magnitude=1j):
-    new_variations = build_variations(read_arrays)
-    var_map = {"A": 1, "C": -1, "T": 1j, "G": -1j, "X": 0}
-    variation_to_value_dicts = []
-    for variation in new_variations:
-        # print(variation)
-        tmp_dict = {}
-        i = 1
-        for var in variation:
-            tmp_dict[var] = var_map[var]
-            # if var == "X":
-            #     tmp_dict[var] = 0
-            #     continue
-            # tmp_dict[var] = i * difference_magnitude
-            # if difference_magnitude.real != 0:  # if complex
-            #     print("LINEAR!!!!!!")
-            #     i += 1
-            # else:
-            #     i *= difference_magnitude
-        # print(tmp_dict)
-        variation_to_value_dicts.append(tmp_dict.copy())
-
-    rows = len(read_arrays)
-    cols = len(read_arrays[0])
-    # print(read_arrays[0])
-    final_matrix = np.zeros((rows, cols), dtype=np.complex)
-    for (j, vars_dict) in zip(range(cols), variation_to_value_dicts):
-        for (read, i) in zip(read_arrays, range(rows)):
-            final_matrix[i, j] = vars_dict[read[j]]
-    # print(final_matrix[0, :])
-    return final_matrix, variation_to_value_dicts
+def save_indexes(indexes: list, separated: bool = False):
+    if not separated:
+        save_as_file(indexes, "all-indexes")
+    else:
+        i = 0
+        for index_list in indexes:
+            i += 1
+            save_as_file(index_list, "indexes-part-{}".format(i))
 
 
 def save_as_file(obj, name: str):
@@ -274,22 +242,29 @@ def save_as_file(obj, name: str):
         pickle.dump(obj, file)
 
 
-def save_result(completed_mat, reads_arr, mapping_dicts, version: str):
-    with safe_open_w(os.path.join(DATA_PATH, "results", version, "completed-matrix" + ".pkl"), "wb+") as completed_mat_file:
+def save_result(completed_mat, reads_arr, mapping_dicts, version: str, part_number: int = -1):
+    if part_number != -1:
+        version_part = os.path.join(version, "part_{}".format(str(part_number)))
+    else:
+        version_part = version
+    with safe_open_w(os.path.join(DATA_PATH, "results", version_part, "completed-matrix" + ".pkl"), "wb+") as completed_mat_file:
         pickle.dump(completed_mat, completed_mat_file)
-    with safe_open_w(os.path.join(DATA_PATH, "results", version, "read-arrays" + ".pkl"), "wb+") as read_arr_file:
+    with safe_open_w(os.path.join(DATA_PATH, "results", version_part, "read-arrays" + ".pkl"), "wb+") as read_arr_file:
         pickle.dump(reads_arr, read_arr_file)
-    with safe_open_w(os.path.join(DATA_PATH, "results", version, "mapping-dict" + ".pkl"), "wb+") as mapping_dicts_file:
+    with safe_open_w(os.path.join(DATA_PATH, "results", version_part, "mapping-dict" + ".pkl"), "wb+") as mapping_dicts_file:
         pickle.dump(mapping_dicts, mapping_dicts_file)
 
 
-def load_results(version: str):
-    with open(os.path.join(DATA_PATH, "results", "completed-matrix-{}.pkl".format(version)),
-              'rb') as completed_mat_file:
+def load_results(version: str, part_number: int = -1):
+    if part_number != -1:
+        version_part = os.path.join(version, "part_{}".format(str(part_number)))
+    else:
+        version_part = version
+    with open(os.path.join(DATA_PATH, "results", version_part, "completed-matrix.pkl"), 'rb') as completed_mat_file:
         completed_matrix = pickle.load(completed_mat_file)
-    with open(os.path.join(DATA_PATH, "results", "read-arrays-{}.pkl".format(version)), 'rb') as read_arr_file:
+    with open(os.path.join(DATA_PATH, "results", version_part, "read-arrays.pkl"), 'rb') as read_arr_file:
         read_arrays = pickle.load(read_arr_file)
-    with open(os.path.join(DATA_PATH, "results", "mapping-dict-{}.pkl".format(version)), 'rb') as mapping_dict_file:
+    with open(os.path.join(DATA_PATH, "results", version_part, "mapping-dict.pkl"), 'rb') as mapping_dict_file:
         mapping_dicts = pickle.load(mapping_dict_file)
     return completed_matrix, read_arrays, mapping_dicts
 

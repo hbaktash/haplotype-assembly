@@ -1,4 +1,6 @@
 from matplotlib import pyplot
+from file_handler import file_reader as fr
+from matrix_scripts import matrix_tools as mt
 import numpy as np
 import time
 
@@ -20,3 +22,15 @@ def plot_ranked_hist(domination_stats: list):
     pyplot.legend(loc='center')
     pyplot.show()
     time.sleep(2)
+
+
+def analyse_result(version: str, part_number: int = -1):
+    mat, reads, dicts = fr.load_results(version, part_number=part_number)
+    rounded_mat = mt.complex_matrix_projection(mat)
+    zero_reads = 0
+    for read in reads:
+        for e in read:
+            if e == "X":
+                zero_reads += 1
+    print("number of completed elements: {} out of {} zeros".format(zero_reads - np.sum(rounded_mat == 0), zero_reads))
+    return mat, reads, dicts
