@@ -1,5 +1,5 @@
 import numpy as np
-
+import collections
 
 def remove_empty_reads(sub_reads: list):
     init_size = len(sub_reads)
@@ -14,11 +14,49 @@ def remove_empty_reads(sub_reads: list):
     return pruned_reads
 
 
+def remove_repeated_reads(reads: list):
+    deletables = []
+    for i in range(len(reads)):
+        for k in range(0,i):
+            if collections.Counter(reads[i]) == collections.Counter(reads[k]):
+                deletables.append(i)
+                break
+    return [reads[i] for i in range(len(reads)) if not deletables.__contains__(i)], deletables
+
+
+def check_read_inclusion(big_r: list, small_r: list):
+    if len(big_r) != len(small_r):
+        print("WTF")
+        return False
+    for i in range(len(big_r)):
+        if (big_r[i] != "X") and (small_r[i] != "X"):
+            if big_r[i] != small_r[i]:
+                return False
+            else:
+                continue
+        elif small_r[i] != "X":
+            return False
+        else:
+            continue
+    return True
+
+
+def remove_submissive_reads(reads: list):
+    deletables = []
+    for i in range(len(reads)):
+        for k in range(len(reads)):
+            if i != k:
+                if check_read_inclusion(reads[k], reads[i]):
+                    deletables.append(i)
+                    break
+    return [reads[i] for i in range(len(reads)) if not deletables.__contains__(i)], deletables
+
+
 def separate_reads(read_arrays: list, index_pairs: list, separation_indexes: list):
     """returns separated read arrays with independent sizes
     each element is a read_arrays list"""
 
-    print("extracting separation positions")
+    print("    -extracting separation positions")
     separation_positions = []
     indexes = [a[0] for a in index_pairs]
     for sep_index in separation_indexes:
@@ -30,7 +68,7 @@ def separate_reads(read_arrays: list, index_pairs: list, separation_indexes: lis
                 separation_positions.append(i + 1)
                 break
 
-    print("separating reads")
+    print("    -separating reads")
     sub_read_arrays = []
     sub_index_pairs = []
     first_position = 0
@@ -40,7 +78,7 @@ def separate_reads(read_arrays: list, index_pairs: list, separation_indexes: lis
         sub_read_arrays.append(tmp_sub_read_array.copy())
         sub_index_pairs.append(index_pairs[first_position:separation_positions[i]].copy())
         first_position = separation_positions[i]
-    print("removing empty reads")
+    print("    -removing empty reads")
     independent_read_arrays = [remove_empty_reads(sub_read_array) for sub_read_array in sub_read_arrays]
     return independent_read_arrays, sub_index_pairs
 
@@ -89,12 +127,18 @@ def read_array_to_matrix(read_arrays: list, index_pairs: list, difference_magnit
     return final_matrix, variation_to_value_dicts
 
 
-def read_mat_to_arrays(read_mat: np.ndarray, dicts: list):
-    if len(dicts) != read_mat.shape[1]:
-        print("dict and array size don't match")
+def read_mat_to_arrays(read_mat: np.ndarray, dicts: list, use_dicts: bool = True):
+    if use_dicts:
+        if len(dicts) != read_mat.shape[1]:
+            print("dict and array size don't match")
+            return
     read_arrays = []
+    reverse_var_map = {1: "A", -1: "C", 1j: "T", -1j: "G", 0: "X"}
     for i in range(read_mat.shape[0]):
-        read_arrays.append([
-            [key for (key, value) in dicts[j].items() if value == read_mat[i, j]][0]
-            for j in range(len(dicts))])
+        if use_dicts:
+            read_arrays.append([
+                [key for (key, value) in dicts[j].items() if value == read_mat[i, j]][0]
+                for j in range(len(dicts))])
+        else:
+            read_arrays.append([reverse_var_map[read_mat[i, j]] for j in range(read_mat.shape[1])])
     return read_arrays

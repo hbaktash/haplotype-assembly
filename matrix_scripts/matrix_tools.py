@@ -2,7 +2,10 @@ import math
 
 import numpy as np
 import sympy
-
+from scipy.linalg import lu
+from scipy import io
+import file_reader as fr
+import os
 
 def svd(A):
     return np.linalg.svd(A, full_matrices=False)
@@ -10,8 +13,8 @@ def svd(A):
 
 def singular_value_shrinkage(A, threshold):
     u, s, vh = svd(A)
-    print("*********************************\n", list(s))
-    print(s.shape)
+    # print("*********************************\n", list(s))
+    # print(s.shape)
     s = s - threshold
     s[s < 0] = 0
     shrinked = np.matmul(u, np.matmul(np.diag(s), vh))
@@ -26,21 +29,61 @@ def frob_norm(A):
     return np.linalg.norm(A, ord='fro')
 
 
-def rref(A):
-    a = sympy.Matrix(A)
-    rref_mat, pivots = a.rref()
-    return sympy.matrix2numpy(rref_mat), pivots
+def find_pivots(upper_tri: np.ndarray, epsilon=0.00001):
+    pivots = []
+    for i in range(upper_tri.shape[0]):
+        for j in range(upper_tri.shape[1]):
+            if complex_norm(upper_tri[i, j]) > epsilon:
+                pivots.append(j)
+                break
+    return pivots
 
 
-def extract_haplotypes(H):
-    rref_H, p = rref(H.transpose())
-    binary_H = np.ones(H.shape)
-    binary_H[H > 0] = 2
-    binary_H[H < 0] = 0
-    binary_H = binary_H - 1
-    h_p = binary_H[p[0], :]
-    h_m = binary_H[p[1], :]
-    return h_p, h_m
+def rref(matrix, with_lu=False, cheat: bool = False, part_number= -1):
+    if cheat: #  :D
+        p = io.loadmat(os.path.join(fr.DATA_PATH, "results", "p{}.mat".format(part_number)))['p{}'.format(part_number)]
+        return None, p[0]
+    if not with_lu:
+        a = sympy.Matrix(matrix)
+        rref_mat, pivots = a.rref(normalize_last=True)
+        return sympy.matrix2numpy(rref_mat), pivots
+    else:
+        pl, u = lu(matrix, permute_l=True)
+        pivots = find_pivots(upper_tri=u)
+        return u, pivots
+
+
+def extract_distinctive_blocks(H: np.ndarray, single_individual: bool = True, part_number= -1, cheat:bool= False):
+    if single_individual:
+        rref_H, pivots = rref(H.transpose())
+        binary_H = np.ones(H.shape)
+        binary_H[H > 0] = 2
+        binary_H[H < 0] = 0
+        binary_H = binary_H - 1
+        h_p = binary_H[pivots[0], :]
+        h_m = binary_H[pivots[1], :]
+        return np.array(h_p, h_m)
+    else:
+        # print("    -estimating rank")
+        # estimated_r = estimated_rank(H)
+        print("    -rref")
+        _, pivots = rref(H.transpose(), with_lu=True, part_number=part_number, cheat=cheat)
+        print("    -projecting")
+        # print(H.shape)
+        # print(list(H))
+        rounded_H = complex_matrix_projection(H)
+        print("    -pivots: ", len(pivots), list(pivots))
+        haplo_blocks = []
+        print("    -saving blocks")
+        for i in range(len(pivots)):
+            haplo_blocks.append(list(rounded_H[pivots[i], :]))
+        return np.array(haplo_blocks)
+
+
+def estimated_rank(H: np.ndarray, singular_threshold: float = 0.02):
+    _, singular_values, _ = svd(H)
+    valid_count = np.sum(singular_values >= singular_threshold)
+    return int(valid_count)
 
 
 def complex_norm(c: complex):
@@ -48,11 +91,10 @@ def complex_norm(c: complex):
 
 
 def complex_value_projection(c: complex):
-    if complex_norm(c) < 0.01:
-        return 0
-    elif complex_norm(c) > 10:
+    # if complex_norm(c) < 0.01:
+    #     return 0
+    if complex_norm(c) > 5:
         print("TOO BIG!!!")
-        return 0
     else:
         if c.real >= c.imag:
             if c.imag >= -c.real:
@@ -67,12 +109,15 @@ def complex_value_projection(c: complex):
 
 
 def complex_matrix_projection(r_hat: np.ndarray):
-    ans = np.zeros(r_hat.shape, dtype=np.complex)
-    for i in range(r_hat.shape[0]):
-        # print(i)
-        for j in range(r_hat.shape[1]):
-            ans[i, j] = complex_value_projection(r_hat[i, j])
-    return ans
+    # complex_projector_vectorized = np.vectorize(complex_value_projection)
+    new_mat = np.zeros(r_hat.shape, dtype=np.complex)
+    for i in range(new_mat.shape[0]):
+        for j in range(new_mat.shape[1]):
+            # print(i, j)
+            # print(r_hat[i, j])
+            new_mat[i, j] = complex_value_projection(r_hat[i, j])
+    return new_mat
+    # return complex_projector_vectorized(r_hat)
 
 
 if __name__ == '__main__':
