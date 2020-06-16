@@ -3,6 +3,7 @@ import os
 import numpy as np
 from statistic_tools import stat_tools
 import pickle
+from scipy import io
 
 SAM_PATH = "./"
 DATA_PATH = os.path.join(os.getcwd(), "data")
@@ -237,10 +238,24 @@ def save_indexes(indexes: list, separated: bool = False):
             save_as_file(index_list, "indexes-part-{}".format(i))
 
 
-def save_as_file(obj, name: str):
-    with safe_open_w(os.path.join(DATA_PATH, "results", name + ".pkl"), "wb+") as file:
+def save_as_file(obj, name: str, version: str = "", part_number: int = -1):
+    if version == "":
+        with safe_open_w(os.path.join(DATA_PATH, "results", name + ".pkl"), "wb+") as file:
+            pickle.dump(obj, file)
+        return
+    if part_number != -1:
+        version_part = os.path.join(version, "part_{}".format(str(part_number)))
+    else:
+        version_part = version
+    with safe_open_w(os.path.join(DATA_PATH, "results", version_part, name + ".pkl"), "wb+") as file:
         pickle.dump(obj, file)
 
+
+def save_parts_as_mat(version: str = "", part_number: int = -1):
+    version_part = os.path.join(version, "part_{}".format(str(part_number)))
+    with safe_open_w(os.path.join(DATA_PATH, "results", version_part, "completed-matrix.pkl"), 'rb') as file:
+        complete_mat = pickle.load(file)
+    io.savemat(os.path.join(DATA_PATH, "results", "exon-mat{}.mat".format(part_number)), {'mat{}'.format(part_number): complete_mat})
 
 def save_result(completed_mat, reads_arr, mapping_dicts, version: str, part_number: int = -1):
     if part_number != -1:

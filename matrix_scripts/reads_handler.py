@@ -1,6 +1,7 @@
 import numpy as np
 import collections
 
+
 def remove_empty_reads(sub_reads: list):
     init_size = len(sub_reads)
     non_empty_indexes = []
@@ -21,6 +22,7 @@ def remove_repeated_reads(reads: list):
             if collections.Counter(reads[i]) == collections.Counter(reads[k]):
                 deletables.append(i)
                 break
+    print("{} repeated reads deleted".format(len(deletables)))
     return [reads[i] for i in range(len(reads)) if not deletables.__contains__(i)], deletables
 
 
@@ -46,10 +48,30 @@ def remove_submissive_reads(reads: list):
     for i in range(len(reads)):
         for k in range(len(reads)):
             if i != k:
-                if check_read_inclusion(reads[k], reads[i]):
+                if check_read_inclusion(big_r=reads[k], small_r=reads[i]):
                     deletables.append(i)
                     break
+    print("{} submissive reads deleted".format(len(deletables)))
     return [reads[i] for i in range(len(reads)) if not deletables.__contains__(i)], deletables
+
+
+def find_position_in_sorted_indexes(position: int, indexes: list):
+    if position < indexes[0]:
+        return 0
+    for i in range(len(indexes)):
+        if position == indexes[i]:
+            return i
+        elif indexes[i] < position < indexes[i + 1]:
+            return i + 1
+    return len(indexes)
+
+
+def extract_separation_positions_in_my_indexes(index_pairs: list, separation_indexes: list):
+    separation_positions = []
+    indexes = [a[0] for a in index_pairs]
+    for sep_index in separation_indexes:
+        separation_positions.append(find_position_in_sorted_indexes(sep_index, indexes))
+    return separation_positions
 
 
 def separate_reads(read_arrays: list, index_pairs: list, separation_indexes: list):
@@ -57,17 +79,8 @@ def separate_reads(read_arrays: list, index_pairs: list, separation_indexes: lis
     each element is a read_arrays list"""
 
     print("    -extracting separation positions")
-    separation_positions = []
+    separation_positions = extract_separation_positions_in_my_indexes(index_pairs, separation_indexes)
     indexes = [a[0] for a in index_pairs]
-    for sep_index in separation_indexes:
-        for i in range(len(indexes)):
-            if sep_index == indexes[i]:
-                separation_positions.append(i)
-                break
-            elif indexes[i] < sep_index < indexes[i + 1]:
-                separation_positions.append(i + 1)
-                break
-
     print("    -separating reads")
     sub_read_arrays = []
     sub_index_pairs = []
@@ -78,6 +91,26 @@ def separate_reads(read_arrays: list, index_pairs: list, separation_indexes: lis
         sub_read_arrays.append(tmp_sub_read_array.copy())
         sub_index_pairs.append(index_pairs[first_position:separation_positions[i]].copy())
         first_position = separation_positions[i]
+    print("    -removing empty reads")
+    independent_read_arrays = [remove_empty_reads(sub_read_array) for sub_read_array in sub_read_arrays]
+    return independent_read_arrays, sub_index_pairs
+
+
+def separate_exons(read_arrays: list, index_pairs: list, exon_intervals: list):
+    print("extracting interval positions")
+    indexes = [a[0] for a in index_pairs]
+    interval_positions = [(find_position_in_sorted_indexes(p[0], indexes),
+                           find_position_in_sorted_indexes(p[1], indexes))
+                          for p in exon_intervals]
+
+    print("separating reads")
+    sub_read_arrays = []
+    sub_index_pairs = []
+    for interval_position in interval_positions:
+        tmp_sub_read_array = [read[interval_position[0]:interval_position[1]] for read in read_arrays]
+        sub_read_arrays.append(tmp_sub_read_array.copy())
+
+        sub_index_pairs.append(index_pairs[interval_position[0]:interval_position[1]].copy())
     print("    -removing empty reads")
     independent_read_arrays = [remove_empty_reads(sub_read_array) for sub_read_array in sub_read_arrays]
     return independent_read_arrays, sub_index_pairs
@@ -142,3 +175,14 @@ def read_mat_to_arrays(read_mat: np.ndarray, dicts: list, use_dicts: bool = True
         else:
             read_arrays.append([reverse_var_map[read_mat[i, j]] for j in range(read_mat.shape[1])])
     return read_arrays
+
+
+def get_block_frequencies(blocks: list, read_arrays: list):
+    freqs = []
+    for block in blocks:
+        count = 0
+        for read in read_arrays:
+            if check_read_inclusion(block, read):
+                count += 1
+        freqs.append(count)
+    return freqs

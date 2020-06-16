@@ -4,6 +4,7 @@ from matrix_scripts import matrix_tools as mt
 import numpy as np
 import time
 
+
 def plot_ranked_hist(domination_stats: list):
     first_ranks = []
     second_ranks = []
@@ -34,3 +35,13 @@ def analyse_result(version: str, part_number: int = -1):
                 zero_reads += 1
     print("number of completed elements: {} out of {} zeros".format(zero_reads - np.sum(rounded_mat == 0), zero_reads))
     return mat, reads, dicts
+
+
+def get_frequency(l: list):
+    d = {}
+    for e in l:
+        if list(d.keys()).__contains__(e):
+            d[e] += 1
+        else:
+            d[e] = 1
+    return d

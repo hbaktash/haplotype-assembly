@@ -22,7 +22,7 @@ def matrix_completion(R, epsilon=0.1):
 def hap_nuc(R):
     H_hat = matrix_completion(R)
 
-    h_p, h_m = mt.extract_haplotypes(H_hat)
+    h_p, h_m = mt.extract_distinctive_blocks(H_hat)
     return h_p, h_m
 
 

@@ -7,6 +7,7 @@ from scipy import io
 import file_reader as fr
 import os
 
+
 def svd(A):
     return np.linalg.svd(A, full_matrices=False)
 
@@ -39,8 +40,8 @@ def find_pivots(upper_tri: np.ndarray, epsilon=0.00001):
     return pivots
 
 
-def rref(matrix, with_lu=False, cheat: bool = False, part_number= -1):
-    if cheat: #  :D
+def rref(matrix, with_lu=False, cheat: bool = False, part_number=-1):
+    if cheat:  # :D
         p = io.loadmat(os.path.join(fr.DATA_PATH, "results", "p{}.mat".format(part_number)))['p{}'.format(part_number)]
         return None, p[0]
     if not with_lu:
@@ -53,7 +54,18 @@ def rref(matrix, with_lu=False, cheat: bool = False, part_number= -1):
         return u, pivots
 
 
-def extract_distinctive_blocks(H: np.ndarray, single_individual: bool = True, part_number= -1, cheat:bool= False):
+def get_block_frequencies(blocks: list, rounded_H:np.ndarray):
+    freqs = []
+    for block in blocks:
+        freq = 0
+        for numeric_read in list(rounded_H):
+            if np.allclose(np.array(block), numeric_read):
+                freq += 1
+        freqs.append(freq)
+    return freqs
+
+
+def extract_distinctive_blocks(H: np.ndarray, single_individual: bool = True, part_number=-1, cheat: bool = False):
     if single_individual:
         rref_H, pivots = rref(H.transpose())
         binary_H = np.ones(H.shape)
@@ -77,6 +89,7 @@ def extract_distinctive_blocks(H: np.ndarray, single_individual: bool = True, pa
         print("    -saving blocks")
         for i in range(len(pivots)):
             haplo_blocks.append(list(rounded_H[pivots[i], :]))
+        # block_frequencies = get_block_frequencies(haplo_blocks, rounded_H)
         return np.array(haplo_blocks)
 
 
