@@ -110,6 +110,18 @@ def sam_bunch_to_read_array(path: str, indexes: list, variations: list):
     return all_reads
 
 
+def load_individuals_reads(path_to_all: str, indexes: list):
+    all_reads = []
+    i = 0
+    for file in os.listdir(path_to_all):
+        if file.endswith(".sam"):
+            print(file, "\n", i + 1)
+            with open(os.path.join(path_to_all, file), 'r') as sam_file:
+                tmp_reads = sam_to_read_array(sam_file, indexes)
+                all_reads.append(tmp_reads)
+    return all_reads
+
+
 def parse_CIGAR_read_str(cigar: str, read: str):  # will delete the insertions TODO would we get I or D?
     final_align = ""
     # print(cigar)
@@ -255,18 +267,22 @@ def save_parts_as_mat(version: str = "", part_number: int = -1):
     version_part = os.path.join(version, "part_{}".format(str(part_number)))
     with safe_open_w(os.path.join(DATA_PATH, "results", version_part, "completed-matrix.pkl"), 'rb') as file:
         complete_mat = pickle.load(file)
-    io.savemat(os.path.join(DATA_PATH, "results", "exon-mat{}.mat".format(part_number)), {'mat{}'.format(part_number): complete_mat})
+    io.savemat(os.path.join(DATA_PATH, "results", "exon-mat{}.mat".format(part_number)),
+               {'mat{}'.format(part_number): complete_mat})
+
 
 def save_result(completed_mat, reads_arr, mapping_dicts, version: str, part_number: int = -1):
     if part_number != -1:
         version_part = os.path.join(version, "part_{}".format(str(part_number)))
     else:
         version_part = version
-    with safe_open_w(os.path.join(DATA_PATH, "results", version_part, "completed-matrix" + ".pkl"), "wb+") as completed_mat_file:
+    with safe_open_w(os.path.join(DATA_PATH, "results", version_part, "completed-matrix" + ".pkl"),
+                     "wb+") as completed_mat_file:
         pickle.dump(completed_mat, completed_mat_file)
     with safe_open_w(os.path.join(DATA_PATH, "results", version_part, "read-arrays" + ".pkl"), "wb+") as read_arr_file:
         pickle.dump(reads_arr, read_arr_file)
-    with safe_open_w(os.path.join(DATA_PATH, "results", version_part, "mapping-dict" + ".pkl"), "wb+") as mapping_dicts_file:
+    with safe_open_w(os.path.join(DATA_PATH, "results", version_part, "mapping-dict" + ".pkl"),
+                     "wb+") as mapping_dicts_file:
         pickle.dump(mapping_dicts, mapping_dicts_file)
 
 

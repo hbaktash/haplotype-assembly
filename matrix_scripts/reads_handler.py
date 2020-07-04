@@ -160,8 +160,8 @@ def read_array_to_matrix(read_arrays: list, index_pairs: list, difference_magnit
     return final_matrix, variation_to_value_dicts
 
 
-def read_mat_to_arrays(read_mat: np.ndarray, dicts: list, use_dicts: bool = True):
-    if use_dicts:
+def read_mat_to_arrays(read_mat: np.ndarray, dicts: list = None, use_dicts: bool = True):
+    if use_dicts and dicts != None:
         if len(dicts) != read_mat.shape[1]:
             print("dict and array size don't match")
             return
@@ -182,7 +182,7 @@ def get_block_frequencies(blocks: list, read_arrays: list):
     for block in blocks:
         count = 0
         for read in read_arrays:
-            if check_read_inclusion(block, read):
+            if check_read_inclusion(block, read) or check_read_inclusion(read, block):
                 count += 1
         freqs.append(count)
     return freqs

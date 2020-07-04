@@ -37,6 +37,11 @@ def analyse_result(version: str, part_number: int = -1):
     return mat, reads, dicts
 
 
+def find_pair_block_frequencies(blocks: list, block_indexes: list, individuals_reads: list, individual_indexes:list):
+    # TODO fuck1!!
+    pass
+
+
 def get_frequency(l: list):
     d = {}
     for e in l:

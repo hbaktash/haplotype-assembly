@@ -6,6 +6,10 @@ from scipy.linalg import lu
 from scipy import io
 import file_reader as fr
 import os
+import matlab
+import reads_handler as rh
+from Matrix_completion import HapSVT
+import file_reader as fr
 
 
 def svd(A):
@@ -104,8 +108,8 @@ def complex_norm(c: complex):
 
 
 def complex_value_projection(c: complex):
-    # if complex_norm(c) < 0.01:
-    #     return 0
+    if complex_norm(c) < 0.01:
+        return 0
     if complex_norm(c) > 5:
         print("TOO BIG!!!")
     else:
@@ -131,6 +135,42 @@ def complex_matrix_projection(r_hat: np.ndarray):
             new_mat[i, j] = complex_value_projection(r_hat[i, j])
     return new_mat
     # return complex_projector_vectorized(r_hat)
+
+
+def single_individual_blocks(reads: list, indexes: list):
+
+    print("     {} building matrix and dicts".format(part))
+    read_mat, dicts = rh.read_array_to_matrix(read_arrays, index_pairs, difference_magnitude=1j)
+    print("     matrix shape:", read_mat.shape)
+    print("     {} completing matrix".format(part))
+    completed_mat = HapSVT.complete_matrix(read_mat, delta=0.8, shrinkage_threshold=1.9, epsilon=0.003,
+                                           verbose=False)
+    print("     {} saving to file..".format(part))
+    file_reader.save_result(completed_mat, read_arrays, dicts, test_title, part_number=part)
+    u, s, vh = mt.svd(completed_mat)
+    print("     {} svd:\nshape:".format(part))
+    print(np.array(s).shape)
+    print("")
+    _, s2, _ = mt.svd(completed_mat)
+    print("     {} completed s:\n".format(part), list(s2))
+
+
+def complete_matrix(test_title, read_arrays, index_pairs, exon_intervals, part: int):
+        print("     {} building matrix and dicts".format(part))
+        read_mat, dicts = rh.read_array_to_matrix(read_arrays, index_pairs, difference_magnitude=1j)
+        print("     matrix shape:", read_mat.shape)
+        print("     {} completing matrix".format(part))
+        completed_mat = HapSVT.complete_matrix(read_mat, delta=0.8, shrinkage_threshold=1.9, epsilon=0.003,
+                                               verbose=False)
+        print("     {} saving to file..".format(part))
+        fr.save_result(completed_mat, read_arrays, dicts, test_title, part_number=part)
+        u, s, vh = svd(completed_mat)
+        print("     {} svd:\nshape:".format(part))
+        print(np.array(s).shape)
+        print("")
+        _, s2, _ = svd(completed_mat)
+        print("     {} completed s:\n".format(part), list(s2))
+        return completed_mat
 
 
 if __name__ == '__main__':
