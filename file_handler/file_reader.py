@@ -82,7 +82,7 @@ def sam_to_read_array(sam_file, indexes: list, variations=None, verbose=False): 
                 read_index = indexes[i] - start
                 # print("ri:", read_index)
                 if parsed_read[read_index] != "X":
-                    if not variations[i].__contains__(parsed_read[read_index]) and verbose:
+                    if verbose and (not variations[i].__contains__(parsed_read[read_index])):
                         print("********* Anomaly", "expected:", variations[i], "\ngot:", parsed_read[read_index])
                         print("     in location:", indexes[i], "line:", line_count)
                     read_in_indexes[i] = parsed_read[read_index]
@@ -110,12 +110,12 @@ def sam_bunch_to_read_array(path: str, indexes: list, variations: list):
     return all_reads
 
 
-def load_individuals_reads(path_to_all: str, indexes: list):
+def load_individuals_reads(indexes: list):
+    path_to_all = os.path.join(DATA_PATH, "GAPDH", "sams_ndup_sorted")
     all_reads = []
-    i = 0
     for file in os.listdir(path_to_all):
-        if file.endswith(".sam"):
-            print(file, "\n", i + 1)
+        if file.endswith("-nodup.sam"):
+            # print(file, "\n", i + 1)
             with open(os.path.join(path_to_all, file), 'r') as sam_file:
                 tmp_reads = sam_to_read_array(sam_file, indexes)
                 all_reads.append(tmp_reads)
@@ -203,19 +203,25 @@ def variation_stats(variations, all_read_arrays, indexes: list):
     return index_variation_stats
 
 
-def read_merged():
+def read_merged_indexes():
+    merged_vcf_path = os.path.join(DATA_PATH, "merges")
+    with open(os.path.join(merged_vcf_path, "merged-vars.vcf"), 'r') as vcf_file:
+        index_pairs = vcf_to_indices(vcf_file)
+    return index_pairs
+
+
+def read_merged(index_pairs: list):
     merged_vcf_path = os.path.join(DATA_PATH, "merges")
     merged_sam_path = os.path.join(DATA_PATH, "merges")
     with open(os.path.join(merged_vcf_path, "merged-vars.vcf"), 'r') as vcf_file, \
             open(os.path.join(merged_sam_path, "merged-ndup.sam"), 'r') as sam_file:
-        index_pairs = vcf_to_indices(vcf_file)
         indexes = [pair[0] for pair in index_pairs]
         variations = [pair[1] for pair in index_pairs]
         read_arrays = sam_to_read_array(sam_file, indexes, variations, verbose=False)
     check_reads_sanity(read_arrays)
     print("num of reads:", len(read_arrays))
     print("variant columns:", len(indexes))
-    return read_arrays, index_pairs
+    return read_arrays
     # stats = variation_stats(variations, read_arrays, indexes)
     # stat_tools.plot_ranked_hist(stats)
 
@@ -298,6 +304,37 @@ def load_results(version: str, part_number: int = -1):
     with open(os.path.join(DATA_PATH, "results", version_part, "mapping-dict.pkl"), 'rb') as mapping_dict_file:
         mapping_dicts = pickle.load(mapping_dict_file)
     return completed_matrix, read_arrays, mapping_dicts
+
+
+def load_all_individual_blocks(version: str, number_of_individuals: int, max_parts: int = 9):
+    individuals_blocks = []
+    path_to_all = os.path.join(DATA_PATH, "results")
+    for i in range(1, number_of_individuals + 1):
+        print("person {}".format(i))
+        tmp_individual_blocks = []
+        for part_num in range(1, max_parts+1):
+            path = os.path.join(path_to_all, "individual-{}-{}".format(i, version), "part_{}".format(part_num),
+                                "extracted-blocks.pkl")
+            try:
+                with open(path, 'rb') as blocks_file:
+                    individual_part_blocks = pickle.load(blocks_file)
+                    tmp_individual_blocks.append(individual_part_blocks)
+            except OSError:
+                print("path didnt exist: {}".format(path))
+                tmp_individual_blocks.append([])
+        individuals_blocks.append(tmp_individual_blocks)
+    return individuals_blocks
+
+
+def load_all_exon_blocks(version: str, max_parts: int = 9):
+    all_exon_blocks = []
+    path_to_all = os.path.join(DATA_PATH, "results")
+    for part_num in range(1, max_parts + 1):
+        path = os.path.join(path_to_all, version, "part_{}".format(part_num), "extracted-blocks.pkl")
+        with open(path, 'rb') as file:
+            all_exon_blocks.append(pickle.load(file))
+    return all_exon_blocks
+
 
 
 if __name__ == '__main__':

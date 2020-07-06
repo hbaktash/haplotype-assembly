@@ -3,7 +3,8 @@ from file_handler import file_reader as fr
 from matrix_scripts import matrix_tools as mt
 import numpy as np
 import time
-
+import reads_handler as rh
+import collections
 
 def plot_ranked_hist(domination_stats: list):
     first_ranks = []
@@ -37,9 +38,30 @@ def analyse_result(version: str, part_number: int = -1):
     return mat, reads, dicts
 
 
-def find_pair_block_frequencies(blocks: list, block_indexes: list, individuals_reads: list, individual_indexes:list):
-    # TODO fuck1!!
-    pass
+def find_pair_block_frequencies(all_exon_blocks: list, individuals_exon_blocks: list):
+    freq_tables = []
+    for exon_blocks, per_exon_individual_blocks in zip(all_exon_blocks, individuals_exon_blocks):
+        freq_table = find_pair_block_frequencies_for_single_exon(exon_blocks, per_exon_individual_blocks)
+        freq_tables.append(freq_table)
+    return freq_tables
+
+
+def find_pair_block_frequencies_for_single_exon(exon_blocks: list, individuals_exon_blocks: list):
+    print("############################")
+    m = len(exon_blocks)
+    if m == 1:
+        return np.array([len(individuals_exon_blocks)])
+
+    double_freq_table = np.zeros((m, m))
+
+    for ind_blocks in individuals_exon_blocks:
+        ind_blocks_mapping = rh.map_blocks_to_source_blocks(source_blocks=exon_blocks, individual_blocks=ind_blocks)
+        detected_exon_blocks = list(collections.Counter(ind_blocks_mapping).keys())
+        print(detected_exon_blocks)
+        for i1 in detected_exon_blocks:
+            for i2 in detected_exon_blocks:
+                double_freq_table[i1, i2] += 1
+    return double_freq_table
 
 
 def get_frequency(l: list):
@@ -50,3 +72,24 @@ def get_frequency(l: list):
         else:
             d[e] = 1
     return d
+
+
+def main_double_freqs():
+    exons_count = 9
+    individuals_count = 75
+    all_individual_blocks = fr.load_all_individual_blocks("svt", individuals_count, 9)
+    all_exon_blocks = fr.load_all_exon_blocks("exons-svt", max_parts=exons_count)
+    per_exon_individual_blocks = [[ind_blocks[i] for ind_blocks in all_individual_blocks] for i in range(exons_count)]
+    freq_tables = find_pair_block_frequencies(all_exon_blocks, per_exon_individual_blocks)
+    c = 0
+    for freq_table in freq_tables:
+        c += 1
+        print("***************** exon {} frequency ******************".format(c))
+        print("entry (i,j) indicates freq of b_i and b_j,\n (i,i) indicates frequency of b_i\n")
+        freqs = np.floor((freq_table / individuals_count) * 100) / 100
+        freqs = np.floor((freqs*(1/np.max(freqs)))*100)/100
+        print(freqs)
+
+
+if __name__ == '__main__':
+    main_double_freqs()

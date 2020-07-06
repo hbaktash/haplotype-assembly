@@ -97,13 +97,13 @@ def separate_reads(read_arrays: list, index_pairs: list, separation_indexes: lis
 
 
 def separate_exons(read_arrays: list, index_pairs: list, exon_intervals: list):
-    print("extracting interval positions")
+    print("     -extracting interval positions")
     indexes = [a[0] for a in index_pairs]
     interval_positions = [(find_position_in_sorted_indexes(p[0], indexes),
                            find_position_in_sorted_indexes(p[1], indexes))
                           for p in exon_intervals]
 
-    print("separating reads")
+    print("     -separating reads")
     sub_read_arrays = []
     sub_index_pairs = []
     for interval_position in interval_positions:
@@ -127,7 +127,7 @@ def build_variations(read_arrays: list):
     return variations
 
 
-def read_array_to_matrix(read_arrays: list, index_pairs: list, difference_magnitude=1j):
+def read_array_to_matrix(read_arrays: list):
     new_variations = build_variations(read_arrays)
     var_map = {"A": 1, "C": -1, "T": 1j, "G": -1j, "X": 0}
     variation_to_value_dicts = []
@@ -137,18 +137,7 @@ def read_array_to_matrix(read_arrays: list, index_pairs: list, difference_magnit
         i = 1
         for var in variation:
             tmp_dict[var] = var_map[var]
-            # if var == "X":
-            #     tmp_dict[var] = 0
-            #     continue
-            # tmp_dict[var] = i * difference_magnitude
-            # if difference_magnitude.real != 0:  # if complex
-            #     print("LINEAR!!!!!!")
-            #     i += 1
-            # else:
-            #     i *= difference_magnitude
-        # print(tmp_dict)
         variation_to_value_dicts.append(tmp_dict.copy())
-
     rows = len(read_arrays)
     cols = len(read_arrays[0])
     # print(read_arrays[0])
@@ -186,3 +175,30 @@ def get_block_frequencies(blocks: list, read_arrays: list):
                 count += 1
         freqs.append(count)
     return freqs
+
+
+def map_blocks_to_source_blocks(source_blocks: list, individual_blocks: list):
+    mapping = []
+    # print("SS")
+    # for b in source_blocks:
+    #     print(b)
+    # print("indi")
+    # for b in individual_blocks:
+    #     print(b)
+    for ind_block in individual_blocks:
+        diffs = [blocks_distance(ind_block, source_block) for source_block in source_blocks]
+        min_index = diffs.index(min(diffs))
+        mapping.append(min_index)
+    return mapping
+
+
+def blocks_distance(b1: list, b2: list):
+    if len(b1) != len(b2):
+        return -1
+    diff = 0
+    for e1, e2 in zip(b1, b2):
+        if e1 != e2:
+            diff += 1
+        if (e1 == "X") or (e2 == "X"):  # if either is X then assume 1/2 chance for equality
+            diff -= 0.5
+    return diff
