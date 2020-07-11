@@ -14,10 +14,13 @@ def remove_all_individual_insane_blocks(version: str, number_of_individuals: int
     individual_read_arrays = fr.load_all_individual_read_arrays(version, number_of_individuals)
     ind_count = 0
     for individual_reads_by_exon, individual_blocks_by_exon in zip(individual_read_arrays, individual_blocks):
+        print("----------------------------------------------")
         ind_count += 1
         part_count = 0
         for reads, blocks in zip(individual_reads_by_exon, individual_blocks_by_exon):
             part_count += 1
+            if (reads == None) or (len(reads) < 1):
+                continue
             sane_blocks = rh.remove_insane_blocks(blocks, reads)
             if len(sane_blocks) > 2:
                 print("still insane ind {} part {} : {} -> {}".format(ind_count,
@@ -122,5 +125,6 @@ def main(for_individuals: bool):
 
 
 if __name__ == '__main__':
-    main(for_individuals=True)
-    # stat_tools.main_double_freqs()
+    # main(for_individuals=True)
+    stat_tools.main_double_freqs("large-svt")
+    # remove_all_individual_insane_blocks("large-svt")

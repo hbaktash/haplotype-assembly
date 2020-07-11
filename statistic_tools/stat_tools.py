@@ -83,11 +83,11 @@ def get_frequency(l: list):
     return d
 
 
-def main_double_freqs():
+def main_double_freqs(version: str):
     exons_count = 9
     individuals_count = 75
-    all_individual_blocks = fr.load_all_individual_blocks("svt", individuals_count, 9)
-    all_exon_blocks = fr.load_all_exon_blocks("exons-svt", max_parts=exons_count)
+    all_individual_blocks = fr.load_all_individual_blocks(version, individuals_count, 9)
+    all_exon_blocks = fr.load_all_exon_blocks("exons-{}".format(version), max_parts=exons_count)
     per_exon_individual_blocks = [[ind_blocks[i] for ind_blocks in all_individual_blocks] for i in range(exons_count)]
     freq_tables = find_pair_block_frequencies(all_exon_blocks, per_exon_individual_blocks)
     c = 0

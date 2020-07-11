@@ -155,9 +155,9 @@ def complete_read_arrays(test_title, read_arrays, part: int):
         print("     matrix shape:", read_mat.shape)
         print("     non-zero entries:", np.sum(read_mat != 0))
         print("     {} completing matrix".format(part))
-        completed_mat = HapSVT.complete_matrix(read_mat, delta=0.99, shrinkage_threshold=0.8, epsilon=0.0001,
+        completed_mat = HapSVT.complete_matrix(read_mat, delta=0.99, shrinkage_threshold=1, epsilon=0.001,
                                                verbose=False,
-                                               min_iters=600)
+                                               min_iters=400)
         u, s, vh = svd(completed_mat)
         print("     {} completed s:\n".format(part), list(s))
     print("     {} saving to file..".format(part))
