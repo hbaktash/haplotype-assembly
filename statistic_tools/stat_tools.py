@@ -50,7 +50,7 @@ def find_pair_block_frequencies_for_single_exon(exon_blocks: list, individuals_e
     print("############################")
     m = len(exon_blocks)
     if m == 1:
-        return np.array([len(individuals_exon_blocks)])
+        return np.array([1])
 
     double_freq_table = np.zeros((m, m))
 
@@ -61,14 +61,19 @@ def find_pair_block_frequencies_for_single_exon(exon_blocks: list, individuals_e
         print(detected_exon_blocks)
         if len(detected_exon_blocks) == 0:
             read_less_individuals += 1
-        if len(detected_exon_blocks) == 1:
+        elif len(detected_exon_blocks) == 1:
             index = detected_exon_blocks[0]
             double_freq_table[index, index] += 1
         else:
+            # i1 = detected_exon_blocks[0]
+            # i2 = detected_exon_blocks[1]
+            # double_freq_table[i1, i2] += 1  # taking the most frequent blocks as the most probable
+            # double_freq_table[i2, i1] += 1
             for i1 in detected_exon_blocks:
                 for i2 in detected_exon_blocks:
                     if i1 != i2:
                         double_freq_table[i1, i2] += 1
+
     double_freq_table = double_freq_table/(len(individuals_exon_blocks) - read_less_individuals)
     return double_freq_table
 
@@ -99,7 +104,7 @@ def main_double_freqs(version: str):
             print(block)
         print("frequencies:")
         print("entry (i,j) indicates freq of b_i and b_j,\n (i,i) indicates frequency of b_i\n")
-        freqs = np.floor(freq_table*100) / 100
+        freqs = np.floor(freq_table*100000) / 100000
         print(freqs)
 
 
