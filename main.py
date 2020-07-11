@@ -125,6 +125,6 @@ def main(for_individuals: bool):
 
 
 if __name__ == '__main__':
-    # main(for_individuals=True)
-    stat_tools.main_double_freqs("large-svt")
+    main(for_individuals=True)
+    # stat_tools.main_double_freqs("large-svt")
     # remove_all_individual_insane_blocks("large-svt")
