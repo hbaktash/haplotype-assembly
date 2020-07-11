@@ -202,3 +202,19 @@ def blocks_distance(b1: list, b2: list):
         if (e1 == "X") or (e2 == "X"):  # if either is X then assume 1/2 chance for equality
             diff -= 0.5
     return diff
+
+
+def remove_insane_blocks(blocks: list, reads: list):
+    variations = build_variations(reads)
+    sane_blocks = []
+    for b in blocks:
+        insane = False
+        for i in range(len(variations)):
+            if not variations[i].__contains__(b[i]):
+                insane = True
+                break
+        if not insane:
+            sane_blocks.append(b)
+    return sane_blocks
+
+

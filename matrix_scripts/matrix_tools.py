@@ -46,7 +46,11 @@ def find_pivots(upper_tri: np.ndarray, epsilon=0.00001):
 
 def rref(matrix, with_lu=False, cheat: bool = False, part_number=-1):
     if cheat:  # :D
-        p = io.loadmat(os.path.join(fr.DATA_PATH, "results", "p{}.mat".format(part_number)))['p{}'.format(part_number)]
+        p = io.loadmat(os.path.join(fr.DATA_PATH,
+                                    "results",
+                                    "exons-large-svt",
+                                    "exons-pivots",
+                                    "p{}.mat".format(part_number)))['p{}'.format(part_number)]
         return None, p[0]
     if not with_lu:
         a = sympy.Matrix(matrix)
@@ -149,9 +153,11 @@ def complete_read_arrays(test_title, read_arrays, part: int):
         print("     {} building matrix and dicts".format(part))
         read_mat, dicts = rh.read_array_to_matrix(read_arrays)
         print("     matrix shape:", read_mat.shape)
+        print("     non-zero entries:", np.sum(read_mat != 0))
         print("     {} completing matrix".format(part))
-        completed_mat = HapSVT.complete_matrix(read_mat, delta=0.8, shrinkage_threshold=1.9, epsilon=0.002,
-                                               verbose=False)
+        completed_mat = HapSVT.complete_matrix(read_mat, delta=0.99, shrinkage_threshold=0.8, epsilon=0.0001,
+                                               verbose=False,
+                                               min_iters=600)
         u, s, vh = svd(completed_mat)
         print("     {} completed s:\n".format(part), list(s))
     print("     {} saving to file..".format(part))
@@ -159,7 +165,7 @@ def complete_read_arrays(test_title, read_arrays, part: int):
     return completed_mat
 
 
-if __name__ == '__main__':
-    A = np.random.rand(8, 4)
-    u, s, vh = svd(A)
-    print(u.shape, s.shape, vh.shape)
+# if __name__ == '__main__':
+#     A = np.random.rand(8, 4)
+#     u, s, vh = svd(A)
+#     print(u.shape, s.shape, vh.shape)

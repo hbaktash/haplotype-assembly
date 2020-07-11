@@ -113,8 +113,11 @@ def sam_bunch_to_read_array(path: str, indexes: list, variations: list):
 def load_individuals_reads(indexes: list):
     path_to_all = os.path.join(DATA_PATH, "GAPDH", "sams_ndup_sorted")
     all_reads = []
+    individual_count = 0
     for file in os.listdir(path_to_all):
         if file.endswith("-nodup.sam"):
+            individual_count += 1
+            print(individual_count)
             # print(file, "\n", i + 1)
             with open(os.path.join(path_to_all, file), 'r') as sam_file:
                 tmp_reads = sam_to_read_array(sam_file, indexes)
@@ -204,17 +207,15 @@ def variation_stats(variations, all_read_arrays, indexes: list):
 
 
 def read_merged_indexes():
-    merged_vcf_path = os.path.join(DATA_PATH, "merges")
+    merged_vcf_path = os.path.join(DATA_PATH, "GAPDH", "merged")
     with open(os.path.join(merged_vcf_path, "merged-vars.vcf"), 'r') as vcf_file:
         index_pairs = vcf_to_indices(vcf_file)
     return index_pairs
 
 
 def read_merged(index_pairs: list):
-    merged_vcf_path = os.path.join(DATA_PATH, "merges")
-    merged_sam_path = os.path.join(DATA_PATH, "merges")
-    with open(os.path.join(merged_vcf_path, "merged-vars.vcf"), 'r') as vcf_file, \
-            open(os.path.join(merged_sam_path, "merged-ndup.sam"), 'r') as sam_file:
+    merged_sam_path = os.path.join(DATA_PATH, "GAPDH", "merged")
+    with open(os.path.join(merged_sam_path, "merged-ndup.sam"), 'r') as sam_file:
         indexes = [pair[0] for pair in index_pairs]
         variations = [pair[1] for pair in index_pairs]
         read_arrays = sam_to_read_array(sam_file, indexes, variations, verbose=False)
@@ -256,7 +257,7 @@ def save_indexes(indexes: list, separated: bool = False):
             save_as_file(index_list, "indexes-part-{}".format(i))
 
 
-def save_as_file(obj, name: str, version: str = "", part_number: int = -1):
+def save_as_file(obj, name: str, version: str = "", part_number: int = -1, individual_number: int = -1):
     if version == "":
         with safe_open_w(os.path.join(DATA_PATH, "results", name + ".pkl"), "wb+") as file:
             pickle.dump(obj, file)
@@ -265,15 +266,18 @@ def save_as_file(obj, name: str, version: str = "", part_number: int = -1):
         version_part = os.path.join(version, "part_{}".format(str(part_number)))
     else:
         version_part = version
+    if individual_number != -1:
+        version_part = os.path.join("individual-{}-{}".format(individual_number,version),
+                                    "part_{}".format(part_number))
     with safe_open_w(os.path.join(DATA_PATH, "results", version_part, name + ".pkl"), "wb+") as file:
         pickle.dump(obj, file)
 
 
-def save_parts_as_mat(version: str = "", part_number: int = -1):
+def save_part_as_mat(version: str = "", part_number: int = -1):
     version_part = os.path.join(version, "part_{}".format(str(part_number)))
     with safe_open_w(os.path.join(DATA_PATH, "results", version_part, "completed-matrix.pkl"), 'rb') as file:
         complete_mat = pickle.load(file)
-    io.savemat(os.path.join(DATA_PATH, "results", "exon-mat{}.mat".format(part_number)),
+    io.savemat(os.path.join(DATA_PATH, "results", version, "exon-mat{}.mat".format(part_number)),
                {'mat{}'.format(part_number): complete_mat})
 
 
@@ -306,6 +310,26 @@ def load_results(version: str, part_number: int = -1):
     return completed_matrix, read_arrays, mapping_dicts
 
 
+def load_all_individual_read_arrays(version: str, number_of_individuals: int, max_parts: int = 9):
+    individuals_read_Arrays = []
+    path_to_all = os.path.join(DATA_PATH, "results")
+    for i in range(1, number_of_individuals + 1):
+        print("person {}".format(i))
+        tmp_individual_read_arrays = []
+        for part_num in range(1, max_parts+1):
+            path = os.path.join(path_to_all, "individual-{}-{}".format(i, version), "part_{}".format(part_num),
+                                "read-arrays.pkl")
+            try:
+                with open(path, 'rb') as reads_file:
+                    individual_part_reads = pickle.load(reads_file)
+                    tmp_individual_read_arrays.append(individual_part_reads)
+            except OSError:
+                print("path didnt exist: {}".format(path))
+                tmp_individual_read_arrays.append([])
+        individuals_read_Arrays.append(tmp_individual_read_arrays)
+    return individuals_read_Arrays
+
+
 def load_all_individual_blocks(version: str, number_of_individuals: int, max_parts: int = 9):
     individuals_blocks = []
     path_to_all = os.path.join(DATA_PATH, "results")
@@ -334,7 +358,6 @@ def load_all_exon_blocks(version: str, max_parts: int = 9):
         with open(path, 'rb') as file:
             all_exon_blocks.append(pickle.load(file))
     return all_exon_blocks
-
 
 
 if __name__ == '__main__':

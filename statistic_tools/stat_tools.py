@@ -54,13 +54,22 @@ def find_pair_block_frequencies_for_single_exon(exon_blocks: list, individuals_e
 
     double_freq_table = np.zeros((m, m))
 
+    read_less_individuals = 0
     for ind_blocks in individuals_exon_blocks:
         ind_blocks_mapping = rh.map_blocks_to_source_blocks(source_blocks=exon_blocks, individual_blocks=ind_blocks)
         detected_exon_blocks = list(collections.Counter(ind_blocks_mapping).keys())
         print(detected_exon_blocks)
-        for i1 in detected_exon_blocks:
-            for i2 in detected_exon_blocks:
-                double_freq_table[i1, i2] += 1
+        if len(detected_exon_blocks) == 0:
+            read_less_individuals += 1
+        if len(detected_exon_blocks) == 1:
+            index = detected_exon_blocks[0]
+            double_freq_table[index, index] += 1
+        else:
+            for i1 in detected_exon_blocks:
+                for i2 in detected_exon_blocks:
+                    if i1 != i2:
+                        double_freq_table[i1, i2] += 1
+    double_freq_table = double_freq_table/(len(individuals_exon_blocks) - read_less_individuals)
     return double_freq_table
 
 
@@ -82,12 +91,15 @@ def main_double_freqs():
     per_exon_individual_blocks = [[ind_blocks[i] for ind_blocks in all_individual_blocks] for i in range(exons_count)]
     freq_tables = find_pair_block_frequencies(all_exon_blocks, per_exon_individual_blocks)
     c = 0
-    for freq_table in freq_tables:
+    for freq_table, exon_blocks in zip(freq_tables, all_exon_blocks):
         c += 1
-        print("***************** exon {} frequency ******************".format(c))
+        print("***************** exon {} ******************".format(c))
+        print("exon blocks:")
+        for block in exon_blocks:
+            print(block)
+        print("frequencies:")
         print("entry (i,j) indicates freq of b_i and b_j,\n (i,i) indicates frequency of b_i\n")
-        freqs = np.floor((freq_table / individuals_count) * 100) / 100
-        freqs = np.floor((freqs*(1/np.max(freqs)))*100)/100
+        freqs = np.floor(freq_table*100) / 100
         print(freqs)
 
 
