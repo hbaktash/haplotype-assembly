@@ -12,6 +12,9 @@ from Matrix_completion import HapSVT
 import file_reader as fr
 
 
+REVERSE_VAR_MAP = {1: "A", -1: "C", 1j: "T", -1j: "G", 0: "X"}
+VAR_MAP =  {"A": 1, "C": -1, "T": 1j, "G": -1j, "X": 0}
+
 def svd(A):
     return np.linalg.svd(A, full_matrices=False)
 
@@ -73,7 +76,7 @@ def get_block_frequencies(blocks: list, rounded_H:np.ndarray):
     return freqs
 
 
-def extract_distinctive_blocks(H: np.ndarray, single_individual: bool = True, part_number=-1, cheat: bool = False):
+def extract_distinctive_blocks(H: np.ndarray, variations: list, single_individual: bool = True, part_number=-1, cheat: bool = False):
     if single_individual:
         rref_H, pivots = rref(H.transpose())
         binary_H = np.ones(H.shape)
@@ -91,7 +94,7 @@ def extract_distinctive_blocks(H: np.ndarray, single_individual: bool = True, pa
         print("    -projecting")
         # print(H.shape)
         # print(list(H))
-        rounded_H = complex_matrix_projection(H)
+        rounded_H = complex_matrix_decode_with_variations(H, variations)
         print("    -pivots: ", len(pivots), list(pivots))
         haplo_blocks = []
         print("    -saving blocks")
@@ -110,6 +113,22 @@ def estimated_rank(H: np.ndarray, singular_threshold: float = 0.02):
 def complex_norm(c: complex):
     return math.sqrt(c.real ** 2 + c.imag ** 2)
 
+
+def complex_value_decode_with_variations(c: complex, variations: list):
+    complex_codes = [VAR_MAP[var] for var in variations if var != "X"]
+    diffs = [complex_norm(c-code) for code in complex_codes]
+    return complex_codes[diffs.index(min(diffs))]
+
+
+def complex_matrix_decode_with_variations(r_hat: np.ndarray, variations: list):
+    new_mat = np.zeros(r_hat.shape, dtype=np.complex)
+    for i in range(new_mat.shape[0]):
+        for j in range(new_mat.shape[1]):
+            variation = variations[j]
+            # print(i, j)
+            # print(r_hat[i, j])
+            new_mat[i, j] = complex_value_decode_with_variations(r_hat[i, j], variation)
+    return new_mat
 
 def complex_value_projection(c: complex):
     if complex_norm(c) < 0.01:
@@ -143,6 +162,7 @@ def complex_matrix_projection(r_hat: np.ndarray):
 
 def single_individual_blocks(reads: list, indexes: list):
     pass
+np.matmul()
 
 
 def complete_read_arrays(test_title, read_arrays, part: int):
@@ -153,11 +173,11 @@ def complete_read_arrays(test_title, read_arrays, part: int):
         print("     {} building matrix and dicts".format(part))
         read_mat, dicts = rh.read_array_to_matrix(read_arrays)
         print("     matrix shape:", read_mat.shape)
-        print("     non-zero entries:", np.sum(read_mat != 0))
+        print("     non-zero entries: {}/{}".format(np.sum(read_mat != 0), read_mat.shape[0]*read_mat.shape[1]))
         print("     {} completing matrix".format(part))
-        completed_mat = HapSVT.complete_matrix(read_mat, delta=0.99, shrinkage_threshold=1, epsilon=0.001,
+        completed_mat = HapSVT.complete_matrix(read_mat, delta=0.9, shrinkage_threshold=0.5, epsilon=0.0001,
                                                verbose=False,
-                                               min_iters=400)
+                                               min_iters=1000)
         u, s, vh = svd(completed_mat)
         print("     {} completed s:\n".format(part), list(s))
     print("     {} saving to file..".format(part))

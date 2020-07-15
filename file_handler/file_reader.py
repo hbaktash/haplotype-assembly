@@ -208,7 +208,7 @@ def variation_stats(variations, all_read_arrays, indexes: list):
 
 def read_merged_indexes():
     merged_vcf_path = os.path.join(DATA_PATH, "GAPDH", "merged")
-    with open(os.path.join(merged_vcf_path, "merged-vars.vcf"), 'r') as vcf_file:
+    with open(os.path.join(merged_vcf_path, "merged-vars-ndup.vcf"), 'r') as vcf_file:
         index_pairs = vcf_to_indices(vcf_file)
     return index_pairs
 

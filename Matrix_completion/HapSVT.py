@@ -28,7 +28,7 @@ def complete_matrix(R: np.ndarray,
             diff = mt.frob_norm(mt.selective_matrix(tmp_X - R, selection_matrix))
             print("known entries difference: ", diff)
         diff = mt.frob_norm(pre_X - tmp_X)
-        if number_of_iters >= min_iters:  # diff <= epsilon*norm_R and
+        if (diff <= epsilon*norm_R) and (number_of_iters >= min_iters):  # diff <= epsilon*norm_R and
             break
         if verbose:
             print("X difference: ", diff)
